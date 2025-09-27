@@ -1,7 +1,7 @@
 # LogForge 🔥
 
-[![PyPI version](https://badge.fury.io/py/logforge.svg)](https://badge.fury.io/py/logforge)
-[![Python versions](https://img.shields.io/pypi/pyversions/logforge.svg)](https://pypi.org/project/logforge/)
+[![PyPI version](https://badge.fury.io/py/logcore.svg)](https://badge.fury.io/py/logcore)
+[![Python versions](https://img.shields.io/pypi/pyversions/logcore.svg)](https://pypi.org/project/logcore/)
 [![CI](https://github.com/SarkarRana/logforge/actions/workflows/ci.yml/badge.svg)](https://github.com/SarkarRana/logforge/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/SarkarRana/logforge/blob/main/LICENSE)
 
@@ -27,7 +27,7 @@ LogForge provides a simple, structured, and extensible logging solution that wor
 ### Installation
 
 ```bash
-pip install logforge
+pip install logcore
 ```
 
 For colored output support:
