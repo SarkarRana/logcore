@@ -17,7 +17,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from logforge import get_logger
+from logcore import get_logger
 
 
 def basic_logging_example():

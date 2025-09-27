@@ -41,7 +41,7 @@ pre-commit install
 pytest
 
 # Run with coverage
-pytest --cov=logforge
+pytest --cov=logcore
 
 # Run specific test file
 pytest tests/test_specific.py
@@ -63,14 +63,14 @@ Run these tools before submitting:
 
 ```bash
 # Format code
-black logforge tests examples
-isort logforge tests examples
+black logcore tests examples
+isort logcore tests examples
 
 # Lint code
-flake8 logforge tests examples
+flake8 logcore tests examples
 
 # Type check
-mypy logforge
+mypy logcore
 ```
 
 ## Pull Request Process

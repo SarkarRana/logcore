@@ -18,7 +18,7 @@ except ImportError:
     print("Flask not installed. Install with: pip install flask")
     exit(1)
 
-from logforge import get_logger
+from logcore import get_logger
 
 
 # Initialize Flask app

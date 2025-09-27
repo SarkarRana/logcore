@@ -11,10 +11,10 @@ from unittest.mock import patch
 
 import pytest
 
-from logforge import get_logger, LogLevel, set_correlation_id, get_correlation_id
-from logforge.config import LogCoreConfig, create_config
-from logforge.formatters import JSONFormatter, TextFormatter
-from logforge.handlers import ConsoleHandler, FileHandler
+from logcore import get_logger, LogLevel, set_correlation_id, get_correlation_id
+from logcore.config import LogCoreConfig, create_config
+from logcore.formatters import JSONFormatter, TextFormatter
+from logcore.handlers import ConsoleHandler, FileHandler
 
 
 class TestConfiguration:

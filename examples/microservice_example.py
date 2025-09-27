@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from logforge import get_logger
+from logcore import get_logger
 
 
 # Configure loggers for different services

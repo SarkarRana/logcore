@@ -21,7 +21,7 @@ class LogCoreLogger:
     def __init__(self, config: LogCoreConfig):
         self.config = config
         
-        self._logger = logging.getLogger(f"logforge.{config.name}")
+        self._logger = logging.getLogger(f"logcore.{config.name}")
         self._logger.setLevel(getattr(logging, config.level.value))
         
         self._logger.handlers.clear()

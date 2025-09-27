@@ -9,10 +9,10 @@ description = "A production-ready structured logging library for Python"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
-    {name = "LogForge Contributors", email = "contributors@logforge.dev"},
+    {name = "LogCore Contributors", email = "contributors@logcore.dev"},
 ]
 maintainers = [
-    {name = "LogForge Contributors", email = "contributors@logforge.dev"},
+    {name = "LogCore Contributors", email = "contributors@logcore.dev"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -58,11 +58,11 @@ docs = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["logforge*"]
+include = ["logcore*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-logforge = ["py.typed"]
+logcore = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -86,7 +86,7 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["logforge"]
+known_first_party = ["logcore"]
 skip_glob = [".*", "build/*", "dist/*"]
 
 [tool.mypy]
@@ -118,7 +118,7 @@ addopts = [
     "-v",
     "--tb=short",
     "--strict-markers",
-    "--cov=logforge",
+    "--cov=logcore",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml",
@@ -129,7 +129,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["logforge"]
+source = ["logcore"]
 omit = ["tests/*", "setup.py"]
 
 [tool.coverage.report]
