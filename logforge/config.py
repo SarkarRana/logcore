@@ -1,4 +1,4 @@
-"""Configuration management for LogForge."""
+"""Configuration management for LogCore."""
 
 import os
 from enum import Enum
@@ -23,7 +23,7 @@ class LogLevel(Enum):
 
 
 @dataclass
-class LogForgeConfig:
+class LogCoreConfig:
     name: str
     level: LogLevel = LogLevel.INFO
     json: bool = False
@@ -45,34 +45,34 @@ class LogForgeConfig:
 def get_config_from_env() -> Dict[str, Any]:
     config = {}
     
-    if level := os.getenv("LOGFORGE_LEVEL"):
+    if level := os.getenv("LOGCORE_LEVEL"):
         try:
             config["level"] = LogLevel.from_string(level)
         except ValueError:
             pass
     
-    if json_env := os.getenv("LOGFORGE_JSON"):
+    if json_env := os.getenv("LOGCORE_JSON"):
         config["json"] = json_env.lower() in ("true", "1", "yes", "on")
     
-    if file_path := os.getenv("LOGFORGE_FILE"):
+    if file_path := os.getenv("LOGCORE_FILE"):
         config["file"] = file_path
     
-    if correlation_id := os.getenv("LOGFORGE_CORRELATION_ID"):
+    if correlation_id := os.getenv("LOGCORE_CORRELATION_ID"):
         config["correlation_id"] = correlation_id
     
-    if max_size := os.getenv("LOGFORGE_MAX_FILE_SIZE"):
+    if max_size := os.getenv("LOGCORE_MAX_FILE_SIZE"):
         try:
             config["max_file_size"] = int(max_size)
         except ValueError:
             pass
     
-    if backup_count := os.getenv("LOGFORGE_BACKUP_COUNT"):
+    if backup_count := os.getenv("LOGCORE_BACKUP_COUNT"):
         try:
             config["backup_count"] = int(backup_count)
         except ValueError:
             pass
     
-    if redact_fields := os.getenv("LOGFORGE_REDACT_FIELDS"):
+    if redact_fields := os.getenv("LOGCORE_REDACT_FIELDS"):
         config["redact_fields"] = set(field.strip() for field in redact_fields.split(","))
     
     return config
@@ -87,7 +87,7 @@ def create_config(
     max_file_size: Optional[int] = None,
     backup_count: Optional[int] = None,
     redact_fields: Optional[Set[str]] = None,
-) -> LogForgeConfig:
+) -> LogCoreConfig:
     env_config = get_config_from_env()
     
     config_dict = {
@@ -101,4 +101,4 @@ def create_config(
         "redact_fields": redact_fields if redact_fields is not None else env_config.get("redact_fields"),
     }
     
-    return LogForgeConfig(**config_dict)
+    return LogCoreConfig(**config_dict)

@@ -1,4 +1,4 @@
-"""LogForge - Production logging for Python."""
+"""LogCore - Production logging for Python."""
 
 from .logger import get_logger
 

@@ -1,11 +1,11 @@
-"""Core logging functionality for LogForge."""
+"""Core logging functionality for LogCore."""
 
 import logging
 import sys
 import threading
 from typing import Any, Dict, Optional, Set, Union
 
-from .config import LogForgeConfig, LogLevel, create_config
+from .config import LogCoreConfig, LogLevel, create_config
 from .handlers import create_handlers
 from .utils import (
     Timer, AsyncTimer, correlation_id_context, get_correlation_id,
@@ -14,11 +14,11 @@ from .utils import (
 
 
 _logger_lock = threading.RLock()
-_loggers: Dict[str, "LogForgeLogger"] = {}
+_loggers: Dict[str, "LogCoreLogger"] = {}
 
 
-class LogForgeLogger:
-    def __init__(self, config: LogForgeConfig):
+class LogCoreLogger:
+    def __init__(self, config: LogCoreConfig):
         self.config = config
         
         self._logger = logging.getLogger(f"logforge.{config.name}")
@@ -124,7 +124,7 @@ def get_logger(
     max_file_size: Optional[int] = None,
     backup_count: Optional[int] = None,
     redact_fields: Optional[Set[str]] = None,
-) -> LogForgeLogger:
+) -> LogCoreLogger:
     with _logger_lock:
         if name in _loggers:
             existing_logger = _loggers[name]
@@ -146,7 +146,7 @@ def get_logger(
             redact_fields=redact_fields,
         )
         
-        logger = LogForgeLogger(config)
+        logger = LogCoreLogger(config)
         _loggers[name] = logger
         
         return logger

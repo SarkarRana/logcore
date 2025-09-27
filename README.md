@@ -1,13 +1,13 @@
-# LogForge 🔥
+# LogCore 🔥
 
 [![PyPI version](https://badge.fury.io/py/logcore.svg)](https://badge.fury.io/py/logcore)
 [![Python versions](https://img.shields.io/pypi/pyversions/logcore.svg)](https://pypi.org/project/logcore/)
-[![CI](https://github.com/SarkarRana/logforge/actions/workflows/ci.yml/badge.svg)](https://github.com/SarkarRana/logforge/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/SarkarRana/logforge/blob/main/LICENSE)
+[![CI](https://github.com/SarkarRana/logcore/actions/workflows/ci.yml/badge.svg)](https://github.com/SarkarRana/logcore/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/SarkarRana/logcore/blob/main/LICENSE)
 
 **A production-ready logging library for Python**
 
-LogForge provides a simple, structured, and extensible logging solution that works seamlessly for both small scripts and large microservices. It's designed as a drop-in alternative to Python's built-in logging with a focus on developer experience, observability, and production readiness.
+LogCore provides a simple, structured, and extensible logging solution that works seamlessly for both small scripts and large microservices. It's designed as a drop-in alternative to Python's built-in logging with a focus on developer experience, observability, and production readiness.
 
 ## ✨ Features
 
@@ -33,13 +33,13 @@ pip install logcore
 For colored output support:
 
 ```bash
-pip install logforge[colors]
+pip install logcore[colors]
 ```
 
 ### Basic Usage
 
 ```python
-from logforge import get_logger
+from logcore import get_logger
 
 # Create a logger
 log = get_logger("myapp", level="INFO", json=True)
@@ -62,10 +62,10 @@ except Exception:
 
 ### Configuration Options
 
-LogForge can be configured through code or environment variables:
+LogCore can be configured through code or environment variables:
 
 ```python
-from logforge import get_logger
+from logcore import get_logger
 
 log = get_logger(
     name="myapp",              # Logger name
@@ -84,11 +84,11 @@ log = get_logger(
 Set configuration via environment variables:
 
 ```bash
-export LOGFORGE_LEVEL=DEBUG
-export LOGFORGE_JSON=true
-export LOGFORGE_FILE=/var/log/app.log
-export LOGFORGE_CORRELATION_ID=req-abc-123
-export LOGFORGE_REDACT_FIELDS=password,token,secret
+export LOGCORE_LEVEL=DEBUG
+export LOGCORE_JSON=true
+export LOGCORE_FILE=/var/log/app.log
+export LOGCORE_CORRELATION_ID=req-abc-123
+export LOGCORE_REDACT_FIELDS=password,token,secret
 ```
 
 ### Output Formats
@@ -118,7 +118,7 @@ export LOGFORGE_REDACT_FIELDS=password,token,secret
 #### Correlation IDs for Request Tracing
 
 ```python
-from logforge import get_logger
+from logcore import get_logger
 
 log = get_logger("api")
 
@@ -181,11 +181,11 @@ Files are automatically rotated:
 
 ### Async Support
 
-LogForge is fully compatible with asyncio:
+LogCore is fully compatible with asyncio:
 
 ```python
 import asyncio
-from logforge import get_logger
+from logcore import get_logger
 
 async def main():
     log = get_logger("async_app")
@@ -209,7 +209,7 @@ asyncio.run(main())
 
 ```python
 from flask import Flask, request, g
-from logforge import get_logger
+from logcore import get_logger
 import uuid
 
 app = Flask(__name__)
@@ -242,7 +242,7 @@ def get_user(user_id):
 
 ```python
 from fastapi import FastAPI, Request
-from logforge import get_logger
+from logcore import get_logger
 import time
 import uuid
 
@@ -274,7 +274,7 @@ async def logging_middleware(request: Request, call_next):
 
 ### vs. Built-in `logging`
 
-| Feature            | LogForge                  | Built-in logging             |
+| Feature            | LogCore                   | Built-in logging             |
 | ------------------ | ------------------------- | ---------------------------- |
 | Setup complexity   | ⭐⭐⭐⭐⭐ Single line    | ⭐⭐ Complex setup           |
 | Structured logging | ⭐⭐⭐⭐⭐ Built-in       | ⭐⭐ Manual implementation   |
@@ -285,7 +285,7 @@ async def logging_middleware(request: Request, call_next):
 
 ### vs. `loguru`
 
-| Feature          | LogForge                    | Loguru                         |
+| Feature          | LogCore                     | Loguru                         |
 | ---------------- | --------------------------- | ------------------------------ |
 | Production focus | ⭐⭐⭐⭐⭐ Enterprise-ready | ⭐⭐⭐⭐ Great for development |
 | Correlation IDs  | ⭐⭐⭐⭐⭐ Built-in context | ⭐⭐ Manual binding            |
@@ -299,8 +299,8 @@ async def logging_middleware(request: Request, call_next):
 ### Setup
 
 ```bash
-git clone https://github.com/logforge/logforge.git
-cd logforge
+git clone https://github.com/SarkarRana/logcore.git
+cd logcore
 
 # Install development dependencies
 pip install -e ".[dev]"
@@ -316,7 +316,7 @@ pre-commit install
 pytest
 
 # Run with coverage
-pytest --cov=logforge
+pytest --cov=logcore
 
 # Run specific test categories
 pytest -m "not slow"          # Skip slow tests
@@ -327,14 +327,14 @@ pytest -m integration         # Run integration tests only
 
 ```bash
 # Format code
-black logforge tests
-isort logforge tests
+black logcore tests
+isort logcore tests
 
 # Lint
-flake8 logforge tests
+flake8 logcore tests
 
 # Type checking
-mypy logforge
+mypy logcore
 ```
 
 ## 📄 License

@@ -1,4 +1,4 @@
-"""Custom handlers for LogForge."""
+"""Custom handlers for LogCore."""
 
 import logging
 import logging.handlers
@@ -7,11 +7,11 @@ from pathlib import Path
 from typing import Optional
 
 from .formatters import JSONFormatter, TextFormatter
-from .config import LogForgeConfig
+from .config import LogCoreConfig
 
 
 class ConsoleHandler:
-    def __init__(self, config: LogForgeConfig):
+    def __init__(self, config: LogCoreConfig):
         self.config = config
         self.handler = logging.StreamHandler(sys.stderr)
         formatter = JSONFormatter(redact_fields=config.redact_fields) if config.json else TextFormatter(redact_fields=config.redact_fields)
@@ -22,7 +22,7 @@ class ConsoleHandler:
 
 
 class FileHandler:
-    def __init__(self, config: LogForgeConfig, file_path: str):
+    def __init__(self, config: LogCoreConfig, file_path: str):
         self.config = config
         
         file_path = Path(file_path)
@@ -42,7 +42,7 @@ class FileHandler:
         return self.handler
 
 
-def create_handlers(config: LogForgeConfig) -> list[logging.Handler]:
+def create_handlers(config: LogCoreConfig) -> list[logging.Handler]:
     handlers = []
     
     console_handler = ConsoleHandler(config)

@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 
 from logforge import get_logger, LogLevel, set_correlation_id, get_correlation_id
-from logforge.config import LogForgeConfig, create_config
+from logforge.config import LogCoreConfig, create_config
 from logforge.formatters import JSONFormatter, TextFormatter
 from logforge.handlers import ConsoleHandler, FileHandler
 
@@ -130,7 +130,7 @@ class TestHandlers:
     
     def test_console_handler(self):
         """Test console handler creation."""
-        config = LogForgeConfig(name="test")
+        config = LogCoreConfig(name="test")
         handler = ConsoleHandler(config)
         
         assert isinstance(handler.get_handler(), logging.StreamHandler)
@@ -139,7 +139,7 @@ class TestHandlers:
         """Test file handler with rotation."""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_file = Path(tmpdir) / "test.log"
-            config = LogForgeConfig(name="test", max_file_size=1024, backup_count=3)
+            config = LogCoreConfig(name="test", max_file_size=1024, backup_count=3)
             
             handler = FileHandler(config, str(log_file))
             log_handler = handler.get_handler()

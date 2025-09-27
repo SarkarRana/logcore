@@ -1,4 +1,4 @@
-"""Utilities for LogForge."""
+"""Utilities for LogCore."""
 
 import asyncio
 import contextvars

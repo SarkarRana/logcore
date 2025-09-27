@@ -1,4 +1,4 @@
-"""Formatters for LogForge logging output."""
+"""Formatters for LogCore logging output."""
 
 import json
 import logging

@@ -56,7 +56,7 @@ logforge/
 ### 1. Configuration (`config.py`)
 
 - `LogLevel` enum for log levels
-- `LogForgeConfig` dataclass for configuration
+- `LogCoreConfig` dataclass for configuration
 - Environment variable support
 - Default sensitive field redaction
 
