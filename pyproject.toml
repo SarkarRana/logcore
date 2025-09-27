@@ -51,10 +51,10 @@ docs = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/SarkarRana/logforge"
-"Bug Reports" = "https://github.com/SarkarRana/logforge/issues"
-"Source" = "https://github.com/SarkarRana/logforge"
-"Documentation" = "https://github.com/SarkarRana/logforge#readme"
+"Homepage" = "https://github.com/SarkarRana/logcore"
+"Bug Reports" = "https://github.com/SarkarRana/logcore/issues"
+"Source" = "https://github.com/SarkarRana/logcore"
+"Documentation" = "https://github.com/SarkarRana/logcore#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
