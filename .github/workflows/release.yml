@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -31,20 +31,15 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          # Simple changelog generation (in real project, use a proper tool)
           echo "## What's Changed" > changelog.md
-          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> changelog.md
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          git log --pretty=format:"- %s" "${PREV_TAG}..HEAD" >> changelog.md
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: LogForge ${{ github.ref }}
           body_path: changelog.md
-          draft: false
-          prerelease: false
+          files: dist/*
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

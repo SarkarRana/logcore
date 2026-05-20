@@ -137,7 +137,7 @@ class AsyncTimer:
 
 def is_async_context() -> bool:
     try:
-        asyncio.current_task()
+        asyncio.get_running_loop()
         return True
     except RuntimeError:
         return False

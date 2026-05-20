@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Flask web application example demonstrating LogForge integration.
+Flask web application example demonstrating LogCore integration.
 
-This example shows how to integrate LogForge with a Flask web application
+This example shows how to integrate LogCore with a Flask web application
 including request logging, correlation IDs, error handling, and structured logging.
 
 Run with: python examples/flask_example.py
@@ -107,7 +107,7 @@ def index():
     """Home page."""
     log.info("Home page accessed")
     return jsonify({
-        'message': 'Welcome to LogForge Flask Example',
+        'message': 'Welcome to LogCore Flask Example',
         'correlation_id': g.correlation_id
     })
 
@@ -241,7 +241,7 @@ def health_check():
 if __name__ == '__main__':
     log.info("Starting Flask application", port=5000, debug=True)
     
-    print("\nFlask LogForge Example")
+    print("\nFlask LogCore Example")
     print("=" * 30)
     print("Server starting on http://localhost:5000")
     print("\nTry these endpoints:")

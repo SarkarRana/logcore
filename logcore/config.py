@@ -10,10 +10,9 @@ class LogLevel(Enum):
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
-    WARN = "WARN"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
-    
+
     @classmethod
     def from_string(cls, level: str) -> "LogLevel":
         level = level.upper()
@@ -31,7 +30,7 @@ class LogCoreConfig:
     correlation_id: Optional[str] = None
     max_file_size: int = 10 * 1024 * 1024
     backup_count: int = 5
-    redact_fields: Set[str] = None
+    redact_fields: Optional[Set[str]] = None
     
     def __post_init__(self):
         if self.redact_fields is None:

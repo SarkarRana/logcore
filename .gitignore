@@ -185,3 +185,4 @@ local_config.py
 # Backup files
 *.bak
 *.backup
+CLAUDE.md

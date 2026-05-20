@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "logcore"
-version = "0.1.4"
+version = "0.1.5"
 description = "A production-ready structured logging library for Python"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -34,6 +34,7 @@ dependencies = []
 
 [project.optional-dependencies]
 colors = ["colorama>=0.4.0"]
+otel = ["opentelemetry-api>=1.0.0"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -43,6 +44,7 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
+    "opentelemetry-sdk>=1.0.0",
 ]
 docs = [
     "sphinx>=6.0.0",
@@ -123,6 +125,7 @@ addopts = [
     "--cov-report=html:htmlcov",
     "--cov-report=xml",
 ]
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",

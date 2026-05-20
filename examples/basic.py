@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Basic usage examples for LogForge logging library.
+Basic usage examples for LogCore logging library.
 
-This script demonstrates the core features of LogForge including:
+This script demonstrates the core features of LogCore including:
 - Simple and structured logging
 - JSON and text output formats
 - Correlation IDs for request tracing
@@ -244,9 +244,9 @@ def environment_config_example():
     
     # Set environment variables (in real usage, these would be set externally)
     os.environ.update({
-        "LOGFORGE_LEVEL": "DEBUG",
-        "LOGFORGE_JSON": "true",
-        "LOGFORGE_REDACT_FIELDS": "secret,private_key,password",
+        "LOGCORE_LEVEL": "DEBUG",
+        "LOGCORE_JSON": "true",
+        "LOGCORE_REDACT_FIELDS": "secret,private_key,password",
     })
     
     # Create logger that picks up environment configuration
@@ -254,14 +254,14 @@ def environment_config_example():
     
     log.debug("Debug message (enabled via environment)")
     log.info("Configuration loaded from environment", 
-             level_from_env=os.environ.get("LOGFORGE_LEVEL"),
-             json_from_env=os.environ.get("LOGFORGE_JSON"))
+             level_from_env=os.environ.get("LOGCORE_LEVEL"),
+             json_from_env=os.environ.get("LOGCORE_JSON"))
     
     # Test redaction from environment config
     log.info("Secret data", secret="should_be_redacted", public_data="visible")
     
     # Clean up environment
-    for key in ["LOGFORGE_LEVEL", "LOGFORGE_JSON", "LOGFORGE_REDACT_FIELDS"]:
+    for key in ["LOGCORE_LEVEL", "LOGCORE_JSON", "LOGCORE_REDACT_FIELDS"]:
         os.environ.pop(key, None)
     
     print()
@@ -317,7 +317,7 @@ def web_framework_simulation():
 
 def main():
     """Run all examples."""
-    print("LogForge Basic Examples")
+    print("LogCore Basic Examples")
     print("=" * 50)
     
     # Run synchronous examples
@@ -336,8 +336,8 @@ def main():
     
     print("All examples completed!")
     print("\nTry running with different environment variables:")
-    print("  LOGFORGE_LEVEL=DEBUG python examples/basic.py")
-    print("  LOGFORGE_JSON=false python examples/basic.py")
+    print("  LOGCORE_LEVEL=DEBUG python examples/basic.py")
+    print("  LOGCORE_JSON=false python examples/basic.py")
 
 
 if __name__ == "__main__":

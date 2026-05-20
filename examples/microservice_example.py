@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Microservice example with LogForge demonstrating advanced logging patterns.
+Microservice example with LogCore demonstrating advanced logging patterns.
 
 This example simulates a microservice architecture with:
 - Service-to-service communication
@@ -358,7 +358,7 @@ async def simulate_load_test(gateway: APIGateway, num_requests: int = 10):
 
 async def main():
     """Main example runner."""
-    print("Microservice LogForge Example")
+    print("Microservice LogCore Example")
     print("=" * 40)
     print("Simulating microservice architecture with distributed logging...")
     print()
@@ -396,7 +396,7 @@ async def main():
     print()
     
     print("Microservice example completed!")
-    print("\nKey LogForge features demonstrated:")
+    print("\nKey LogCore features demonstrated:")
     print("- ✅ Distributed correlation IDs across services")
     print("- ✅ Structured JSON logging for observability")
     print("- ✅ Performance timing and monitoring")

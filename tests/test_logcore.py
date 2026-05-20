@@ -1,4 +1,4 @@
-"""Tests for LogForge logging library."""
+"""Tests for LogCore logging library."""
 
 import json
 import logging
@@ -37,10 +37,10 @@ class TestConfiguration:
     def test_environment_variables(self):
         """Test configuration from environment variables."""
         with patch.dict(os.environ, {
-            "LOGFORGE_LEVEL": "DEBUG",
-            "LOGFORGE_JSON": "true",
-            "LOGFORGE_FILE": "/tmp/test.log",
-            "LOGFORGE_REDACT_FIELDS": "password,secret"
+            "LOGCORE_LEVEL": "DEBUG",
+            "LOGCORE_JSON": "true",
+            "LOGCORE_FILE": "/tmp/test.log",
+            "LOGCORE_REDACT_FIELDS": "password,secret"
         }):
             config = create_config("test")
             assert config.level == LogLevel.DEBUG
@@ -121,7 +121,7 @@ class TestFormatters:
         output = formatter.format(record)
         data = json.loads(output)
         
-        assert data["password"] == "[REDACTED]"
+        assert data["password"] == "se***"   # "secret123" → prefix 2
         assert data["username"] == "alice"
 
 
@@ -181,7 +181,7 @@ class TestLogger:
     def setup_method(self):
         """Set up test method."""
         # Clear any existing loggers
-        from logforge.logger import _loggers
+        from logcore.logger import _loggers
         _loggers.clear()
     
     def test_basic_logging(self):
@@ -314,6 +314,26 @@ class TestLogger:
         # Verify all messages were logged
         assert len(messages) == 50  # 5 threads * 10 messages each
     
+    def test_replacement_warning(self):
+        """get_logger should warn when replacing a cached logger with new config."""
+        import warnings as _warnings
+        get_logger("warn_test", level="INFO")
+        with _warnings.catch_warnings(record=True) as w:
+            _warnings.simplefilter("always")
+            get_logger("warn_test", level="DEBUG")
+        assert len(w) == 1
+        assert issubclass(w[0].category, UserWarning)
+        assert "warn_test" in str(w[0].message)
+
+    def test_no_warning_on_cache_hit(self):
+        """get_logger should not warn when returning an existing logger unchanged."""
+        import warnings as _warnings
+        get_logger("no_warn_test", level="INFO")
+        with _warnings.catch_warnings(record=True) as w:
+            _warnings.simplefilter("always")
+            get_logger("no_warn_test")
+        assert len(w) == 0
+
     def test_level_filtering(self):
         """Test log level filtering."""
         logger = get_logger("test", level="WARNING")
@@ -347,12 +367,235 @@ class TestLogger:
                 data = json.loads(line)
                 
                 assert data["username"] == "alice"
-                assert data["password"] == "[REDACTED]"
-                assert data["token"] == "[REDACTED]"
+                assert data["password"] == "se***"   # "secret123" → prefix 2
+                assert data["token"] == "a***"        # "abc123" → prefix 1
                 assert data["role"] == "admin"
         
         finally:
             os.unlink(log_file)
+
+
+class TestPartialMasking:
+    """Test that sensitive fields are partially masked, not fully redacted."""
+
+    def test_long_value_shows_prefix(self):
+        formatter = JSONFormatter(redact_fields={"password"})
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="login", args=(), exc_info=None,
+        )
+        record.password = "supersecret"  # 11 chars → prefix 2
+
+        data = json.loads(formatter.format(record))
+        assert data["password"].endswith("***")
+        assert data["password"].startswith("su")
+        assert "supersecret" not in data["password"]
+
+    def test_short_value_fully_redacted(self):
+        formatter = JSONFormatter(redact_fields={"token"})
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="req", args=(), exc_info=None,
+        )
+        record.token = "abc"  # 3 chars → full redact
+
+        data = json.loads(formatter.format(record))
+        assert data["token"] == "[REDACTED]"
+
+    def test_boundary_value_four_chars_fully_redacted(self):
+        formatter = JSONFormatter(redact_fields={"key"})
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="req", args=(), exc_info=None,
+        )
+        record.key = "1234"  # exactly 4 chars → full redact
+
+        data = json.loads(formatter.format(record))
+        assert data["key"] == "[REDACTED]"
+
+    def test_text_formatter_partial_masking(self):
+        formatter = TextFormatter(redact_fields={"password"}, use_colors=False)
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="login", args=(), exc_info=None,
+        )
+        record.password = "mypassword"  # 10 chars → prefix 2
+
+        output = formatter.format(record)
+        assert "mypassword" not in output
+        assert 'password="my***"' in output
+
+    def test_text_formatter_no_stdlib_noise(self):
+        """TextFormatter should not emit stdlib LogRecord internals as extras."""
+        formatter = TextFormatter(use_colors=False)
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="",
+            lineno=0, msg="hello", args=(), exc_info=None,
+        )
+        record.user = "alice"
+
+        output = formatter.format(record)
+        assert "user=alice" in output
+        for noise in ("exc_info", "exc_text", "stack_info", "taskName"):
+            assert noise not in output
+
+
+class TestOpenTelemetry:
+    """Test automatic OTel trace/span ID injection."""
+
+    def setup_method(self):
+        from logcore.logger import _loggers
+        _loggers.clear()
+
+    def test_trace_ids_injected_when_span_active(self):
+        from opentelemetry.sdk.trace import TracerProvider
+
+        provider = TracerProvider()
+        tracer = provider.get_tracer("logcore-test")
+
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            log_file = f.name
+
+        try:
+            logger = get_logger("otel_test", json=True, file=log_file)
+
+            with tracer.start_as_current_span("test-span"):
+                logger.info("inside span")
+
+            with open(log_file) as f:
+                data = json.loads(f.readline())
+
+            assert "trace_id" in data
+            assert "span_id" in data
+            assert len(data["trace_id"]) == 32  # 128-bit hex
+            assert len(data["span_id"]) == 16   # 64-bit hex
+        finally:
+            os.unlink(log_file)
+
+    def test_no_trace_ids_outside_span(self):
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            log_file = f.name
+
+        try:
+            logger = get_logger("no_otel_test", json=True, file=log_file)
+            logger.info("outside any span")
+
+            with open(log_file) as f:
+                data = json.loads(f.readline())
+
+            assert "trace_id" not in data
+            assert "span_id" not in data
+        finally:
+            os.unlink(log_file)
+
+    def test_trace_id_absent_after_span_exits(self):
+        from opentelemetry.sdk.trace import TracerProvider
+
+        provider = TracerProvider()
+        tracer = provider.get_tracer("logcore-test2")
+
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            log_file = f.name
+
+        try:
+            logger = get_logger("otel_scope_test", json=True, file=log_file)
+
+            with tracer.start_as_current_span("scoped-span"):
+                logger.info("inside")
+
+            logger.info("outside")  # span no longer active
+
+            with open(log_file) as f:
+                lines = [l.strip() for l in f if l.strip()]
+
+            inside = json.loads(lines[0])
+            outside = json.loads(lines[1])
+
+            assert "trace_id" in inside
+            assert "trace_id" not in outside
+        finally:
+            os.unlink(log_file)
+
+
+class TestAsync:
+    """Test async timer functionality."""
+
+    def setup_method(self):
+        from logcore.logger import _loggers
+        _loggers.clear()
+
+    @pytest.mark.asyncio
+    async def test_async_timer_logs_start_and_complete(self):
+        """AsyncTimer should emit start/complete messages with numeric duration_ms."""
+        import asyncio
+
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            log_file = f.name
+
+        try:
+            logger = get_logger("async_test", json=True, file=log_file)
+
+            async with logger.time("async_op"):
+                await asyncio.sleep(0.05)
+
+            with open(log_file) as f:
+                lines = [l.strip() for l in f if l.strip()]
+
+            assert len(lines) == 2
+            start = json.loads(lines[0])
+            end = json.loads(lines[1])
+
+            assert "Starting async_op" in start["message"]
+            assert "Completed async_op" in end["message"]
+            assert isinstance(end["duration_ms"], (int, float))
+            assert end["duration_ms"] >= 50
+        finally:
+            os.unlink(log_file)
+
+    @pytest.mark.asyncio
+    async def test_async_timer_logs_error_on_exception(self):
+        """AsyncTimer should log at ERROR level and include duration_ms when the body raises."""
+        import asyncio
+
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            log_file = f.name
+
+        try:
+            logger = get_logger("async_err_test", json=True, file=log_file)
+
+            with pytest.raises(ValueError):
+                async with logger.time("failing_op"):
+                    await asyncio.sleep(0.01)
+                    raise ValueError("boom")
+
+            with open(log_file) as f:
+                lines = [l.strip() for l in f if l.strip()]
+
+            assert len(lines) == 2
+            error_entry = json.loads(lines[1])
+            assert error_entry["level"] == "ERROR"
+            assert "Failed failing_op" in error_entry["message"]
+            assert isinstance(error_entry["duration_ms"], (int, float))
+        finally:
+            os.unlink(log_file)
+
+    @pytest.mark.asyncio
+    async def test_async_correlation_id_isolated_per_task(self):
+        """Correlation IDs set via contextvars must not leak between concurrent tasks."""
+        import asyncio
+
+        results = {}
+
+        async def task(name, cid):
+            logger = get_logger("cid_test")
+            with logger.with_correlation_id(cid):
+                await asyncio.sleep(0.02)
+                results[name] = get_correlation_id()
+
+        await asyncio.gather(task("a", "cid-a"), task("b", "cid-b"))
+
+        assert results["a"] == "cid-a"
+        assert results["b"] == "cid-b"
 
 
 if __name__ == "__main__":

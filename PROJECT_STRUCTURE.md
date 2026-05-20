@@ -1,10 +1,10 @@
-# LogForge Project Structure
+# LogCore Project Structure
 
-This document provides an overview of the LogForge project structure and implementation.
+This document provides an overview of the LogCore project structure and implementation.
 
 ## Project Overview
 
-LogForge is a production-ready logging library for Python that provides:
+LogCore is a production-ready logging library for Python that provides:
 
 - Simple API with single entrypoint
 - Structured JSON and human-readable logging
@@ -19,7 +19,7 @@ LogForge is a production-ready logging library for Python that provides:
 ## File Structure
 
 ```
-logforge/
+logcore/
 ├── __init__.py                 # Package initialization and public API
 ├── config.py                   # Configuration management
 ├── formatters.py               # JSON and text formatters with redaction
@@ -31,7 +31,7 @@ logforge/
 ├── tests/
 │   ├── __init__.py
 │   ├── pytest.ini
-│   └── test_logforge.py        # Comprehensive test suite
+│   └── test_logcore.py        # Comprehensive test suite
 │
 ├── examples/
 │   ├── basic.py                # Basic usage examples
@@ -84,7 +84,7 @@ logforge/
 
 ### 5. Main Logger (`logger.py`)
 
-- `LogForgeLogger` class with full logging API
+- `LogCoreLogger` class with full logging API
 - Thread-safe logger caching
 - Integration with Python's standard logging
 - Support for all log levels (debug, info, warning, error, critical)
@@ -182,20 +182,20 @@ GitHub Actions workflows provide:
 
 ```bash
 # Install
-pip install logforge
+pip install logcore
 
 # Optional color support
-pip install logforge[colors]
+pip install logcore[colors]
 
 # Basic usage
-from logforge import get_logger
+from logcore import get_logger
 log = get_logger("myapp", level="INFO", json=True)
-log.info("Hello LogForge!", user="test")
+log.info("Hello LogCore!", user="test")
 ```
 
 ## Production Readiness
 
-LogForge is designed for production use with:
+LogCore is designed for production use with:
 
 ✅ **Performance**: Minimal overhead, lazy formatting  
 ✅ **Security**: Automatic sensitive data redaction  

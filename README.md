@@ -79,6 +79,30 @@ log = get_logger(
 )
 ```
 
+Calling `get_logger` with the same name a second time and no extra arguments returns the cached instance. Passing configuration arguments when a logger already exists replaces it and emits a `UserWarning` — existing references to the old logger will stop receiving records.
+
+### Public API
+
+```python
+from logcore import get_logger, LogLevel, set_correlation_id, get_correlation_id
+```
+
+| Symbol | Description |
+|---|---|
+| `get_logger(name, ...)` | Create or retrieve a logger |
+| `LogLevel` | Enum of valid log levels (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
+| `set_correlation_id(id)` | Set a correlation ID on the current context (thread/task) without a logger instance |
+| `get_correlation_id()` | Read the current correlation ID, or `None` if unset |
+
+`set_correlation_id` and `get_correlation_id` are useful in middleware that sets the ID before a logger is available:
+
+```python
+from logcore import set_correlation_id, get_correlation_id
+
+# In ASGI/WSGI middleware, before any logger is called:
+set_correlation_id(request.headers.get("x-correlation-id"))
+```
+
 ### Environment Variables
 
 Set configuration via environment variables:
@@ -97,7 +121,7 @@ export LOGCORE_REDACT_FIELDS=password,token,secret
 
 ```json
 {
-  "timestamp": "2025-01-15T10:30:45.123456",
+  "timestamp": "2025-01-15T10:30:45.123456+00:00",
   "level": "INFO",
   "logger": "myapp",
   "message": "User login",
@@ -153,13 +177,43 @@ except Exception as e:
 
 #### Sensitive Data Redaction
 
+Fields are **partially masked** — enough to confirm a value was present without leaking it:
+
 ```python
-# Configure fields to automatically redact
 log = get_logger("secure", redact_fields={"password", "token", "ssn"})
 
-log.info("User data", username="alice", password="secret123", role="admin")
-# Output: ... username=alice password=[REDACTED] role=admin
+log.info("User data", username="alice", password="secret123", token="abc123", role="admin")
+# Output: ... username=alice password=se*** token=a*** role=admin
 ```
+
+Values of 4 characters or fewer are fully redacted (`[REDACTED]`). Longer values reveal a short prefix so you can correlate log lines without exposing the secret.
+
+Default redacted fields: `password`, `passwd`, `secret`, `token`, `key`, `api_key`, `access_token`, `auth`, `authorization`, `credential`, `private_key`, `cert`, `certificate`.
+
+#### OpenTelemetry Integration
+
+When an active [OpenTelemetry](https://opentelemetry.io/) span exists, LogCore automatically injects `trace_id` and `span_id` into every log record — zero configuration required.
+
+```bash
+pip install logcore[otel]
+```
+
+```python
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from logcore import get_logger
+
+trace.set_tracer_provider(TracerProvider())
+tracer = trace.get_tracer("myapp")
+log = get_logger("myapp", json=True)
+
+with tracer.start_as_current_span("handle-request"):
+    log.info("Processing order", order_id=42)
+    # {"trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    #  "span_id": "00f067aa0ba902b7", "message": "Processing order", ...}
+```
+
+Outside a span the fields are simply absent — no noise in non-traced code paths. Works with any OTel-compatible backend (Jaeger, Zipkin, Honeycomb, Datadog, etc.).
 
 #### File Logging with Rotation
 
@@ -270,6 +324,21 @@ async def logging_middleware(request: Request, call_next):
     return response
 ```
 
+## ⚡ Performance
+
+Measured on Python 3.12, Apple M-series, writing to `/dev/null` (I/O excluded):
+
+| Mode | µs / call | Notes |
+|---|---|---|
+| stdlib `logging` (text) | ~6 µs | baseline |
+| stdlib + manual JSON formatter | ~7 µs | +1 µs |
+| **LogCore JSON** | **~13 µs** | +7 µs for structured output |
+| LogCore text (colored) | ~36 µs | +30 µs for strftime + color |
+
+JSON mode is the recommended default for production — it costs ~7 µs per call over stdlib and produces machine-readable output that log aggregators can query directly.
+
+Run the benchmark yourself: `python examples/benchmark.py`
+
 ## 🆚 Comparison with Other Libraries
 
 ### vs. Built-in `logging`
@@ -347,15 +416,24 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 🎯 Roadmap
 
-- [ ] **Performance Optimizations**: Async batching, lazy formatting
-- [ ] **Integrations**: OpenTelemetry, Sentry, DataDog
-- [ ] **Advanced Features**: Log sampling, rate limiting
-- [ ] **Cloud Native**: Kubernetes-friendly output formats
-- [ ] **Monitoring**: Health checks and metrics endpoints
+### Shipped
+- [x] **OpenTelemetry**: Automatic trace/span ID injection from active spans (v0.1.4)
+- [x] **Async support**: `AsyncTimer` with isolated correlation IDs per task (v0.1.4)
+- [x] **Partial masking**: Secrets show a short prefix, not just `[REDACTED]` (v0.1.4)
+- [x] **Accurate caller info**: `filename`, `lineno`, and `funcName` now reflect the real call site (v0.1.5)
+- [x] **Reconfiguration warning**: `get_logger` emits `UserWarning` when replacing a cached logger (v0.1.5)
+- [x] **`LogLevel`, `set_correlation_id`, `get_correlation_id`** promoted to top-level public API (v0.1.5)
+
+### Planned
+- [ ] **Sentry integration**: Automatic error forwarding with structured context
+- [ ] **Log sampling**: Rate-based sampling to protect downstream systems under load
+- [ ] **Async batching**: Buffer and flush writes for lower-latency hot paths
+- [ ] **OTLP export**: Direct log shipping to OpenTelemetry collectors
+- [ ] **Kubernetes metadata**: Pod/node/namespace injection via downward API env vars
 
 ## 💖 Support
 
-If you find LogForge useful, please consider:
+If you find LogCore useful, please consider:
 
 - ⭐ Starring the repository
 - 🐛 Reporting bugs and issues
