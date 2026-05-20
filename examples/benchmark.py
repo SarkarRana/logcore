@@ -32,6 +32,7 @@ def main() -> None:
     class _JSONFmt(logging.Formatter):
         def format(self, r: logging.LogRecord) -> str:
             import json
+
             return json.dumps({"level": r.levelname, "msg": r.getMessage()})
 
     stdlib_json_logger = logging.getLogger("bench_stdlib_json")
@@ -54,10 +55,12 @@ def main() -> None:
         hdlr.stream = null  # type: ignore[attr-defined]
 
     results = {
-        "stdlib text":        bench(lambda: stdlib_logger.info("benchmark message")),
-        "stdlib JSON (manual)": bench(lambda: stdlib_json_logger.info("benchmark message")),
-        "logcore text":       bench(lambda: lc_text.info("benchmark", user="alice", count=1)),
-        "logcore JSON":       bench(lambda: lc_json.info("benchmark", user="alice", count=1)),
+        "stdlib text": bench(lambda: stdlib_logger.info("benchmark message")),
+        "stdlib JSON (manual)": bench(
+            lambda: stdlib_json_logger.info("benchmark message")
+        ),
+        "logcore text": bench(lambda: lc_text.info("benchmark", user="alice", count=1)),
+        "logcore JSON": bench(lambda: lc_json.info("benchmark", user="alice", count=1)),
     }
 
     print(f"\n{'Label':<26} {'µs/call':>10}  {'overhead vs stdlib':>20}")

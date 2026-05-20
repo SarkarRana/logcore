@@ -5,25 +5,13 @@ import os
 import sys
 import threading
 import warnings
+from contextlib import AbstractContextManager
+from types import FrameType
 from typing import Any, Dict, Optional, Set, Tuple, Union
-
-_srcfile = os.path.normcase(os.path.abspath(__file__))
-
-
-def _find_caller() -> Tuple[str, int, str]:
-    """Return (filename, lineno, funcname) of the first caller outside this module."""
-    try:
-        frame = sys._getframe(0)
-    except AttributeError:
-        return "(unknown file)", 0, "(unknown function)"
-    while frame is not None:
-        if os.path.normcase(os.path.abspath(frame.f_code.co_filename)) != _srcfile:
-            return frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name
-        frame = frame.f_back
-    return "(unknown file)", 0, "(unknown function)"
 
 try:
     from opentelemetry import trace as _otel_trace
+
     _HAS_OTEL = True
 except ImportError:  # pragma: no cover
     _HAS_OTEL = False
@@ -31,9 +19,29 @@ except ImportError:  # pragma: no cover
 from .config import LogCoreConfig, LogLevel, create_config
 from .handlers import create_handlers
 from .utils import (
-    Timer, AsyncTimer, correlation_id_context, get_correlation_id,
-    set_correlation_id, safe_str, is_async_context
+    AsyncTimer,
+    Timer,
+    correlation_id_context,
+    get_correlation_id,
+    is_async_context,
+    safe_str,
+    set_correlation_id,
 )
+
+_srcfile = os.path.normcase(os.path.abspath(__file__))
+
+
+def _find_caller() -> Tuple[str, int, str]:
+    """Return (filename, lineno, funcname) of the first caller outside this module."""
+    try:
+        frame: Optional[FrameType] = sys._getframe(0)
+    except AttributeError:
+        return "(unknown file)", 0, "(unknown function)"
+    while frame is not None:
+        if os.path.normcase(os.path.abspath(frame.f_code.co_filename)) != _srcfile:
+            return frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name
+        frame = frame.f_back
+    return "(unknown file)", 0, "(unknown function)"
 
 
 _logger_lock = threading.RLock()
@@ -43,22 +51,22 @@ _loggers: Dict[str, "LogCoreLogger"] = {}
 class LogCoreLogger:
     def __init__(self, config: LogCoreConfig):
         self.config = config
-        
+
         self._logger = logging.getLogger(f"logcore.{config.name}")
         self._logger.setLevel(getattr(logging, config.level.value))
-        
+
         self._logger.handlers.clear()
-        
+
         handlers = create_handlers(config)
         for handler in handlers:
             handler.setLevel(getattr(logging, config.level.value))
             self._logger.addHandler(handler)
-        
+
         if config.correlation_id:
             set_correlation_id(config.correlation_id)
-    
-    def _log(self, level: str, message: str, *args, **kwargs) -> None:
-        exc_info = kwargs.pop('exc_info', False)
+
+    def _log(self, level: str, message: str, *args: Any, **kwargs: Any) -> None:
+        exc_info = kwargs.pop("exc_info", False)
 
         numeric_level = getattr(logging, level.upper(), logging.INFO)
 
@@ -89,8 +97,8 @@ class LogCoreLogger:
             if _span.is_recording():
                 _ctx = _span.get_span_context()
                 if _ctx.is_valid:
-                    record.trace_id = format(_ctx.trace_id, '032x')
-                    record.span_id = format(_ctx.span_id, '016x')
+                    record.trace_id = format(_ctx.trace_id, "032x")
+                    record.span_id = format(_ctx.span_id, "016x")
 
         for key, value in kwargs.items():
             if not hasattr(record, key):
@@ -100,30 +108,32 @@ class LogCoreLogger:
                     setattr(record, key, safe_str(value))
 
         self._logger.handle(record)
-    
-    def debug(self, message: str, *args, **kwargs) -> None:
+
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
         self._log("DEBUG", message, *args, **kwargs)
 
-    def info(self, message: str, *args, **kwargs) -> None:
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None:
         self._log("INFO", message, *args, **kwargs)
 
-    def warning(self, message: str, *args, **kwargs) -> None:
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
         self._log("WARNING", message, *args, **kwargs)
 
-    def warn(self, message: str, *args, **kwargs) -> None:
+    def warn(self, message: str, *args: Any, **kwargs: Any) -> None:
         self.warning(message, *args, **kwargs)
 
-    def error(self, message: str, *args, **kwargs) -> None:
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None:
         self._log("ERROR", message, *args, **kwargs)
 
-    def critical(self, message: str, *args, **kwargs) -> None:
+    def critical(self, message: str, *args: Any, **kwargs: Any) -> None:
         self._log("CRITICAL", message, *args, **kwargs)
 
-    def exception(self, message: str, *args, **kwargs) -> None:
-        kwargs['exc_info'] = True
+    def exception(self, message: str, *args: Any, **kwargs: Any) -> None:
+        kwargs["exc_info"] = True
         self.error(message, *args, **kwargs)
-    
-    def time(self, operation_name: str, level: str = "INFO", **kwargs) -> Union[Timer, AsyncTimer]:
+
+    def time(
+        self, operation_name: str, level: str = "INFO", **kwargs: Any
+    ) -> Union[Timer, AsyncTimer]:
         """Return a context manager that logs start/complete and duration_ms.
 
         Auto-detects async context: returns AsyncTimer inside a running event
@@ -134,32 +144,34 @@ class LogCoreLogger:
         else:
             return Timer(self, operation_name, level, **kwargs)
 
-    def with_correlation_id(self, correlation_id: Optional[str] = None):
+    def with_correlation_id(
+        self, correlation_id: Optional[str] = None
+    ) -> AbstractContextManager[str]:
         """Return a context manager that sets a correlation ID for this scope.
 
         Uses contextvars, so the ID is isolated per async task or thread.
         A UUID is generated automatically when correlation_id is omitted.
         """
         return correlation_id_context(correlation_id)
-    
-    def set_level(self, level: Union[str, LogLevel]):
+
+    def set_level(self, level: Union[str, LogLevel]) -> None:
         if isinstance(level, str):
             level = LogLevel.from_string(level)
-        
+
         self.config.level = level
         numeric_level = getattr(logging, level.value)
-        
+
         self._logger.setLevel(numeric_level)
         for handler in self._logger.handlers:
             handler.setLevel(numeric_level)
-    
+
     def get_level(self) -> LogLevel:
         return self.config.level
-    
+
     def is_enabled_for(self, level: Union[str, LogLevel]) -> bool:
         if isinstance(level, str):
             level = LogLevel.from_string(level)
-        
+
         numeric_level = getattr(logging, level.value)
         return self._logger.isEnabledFor(numeric_level)
 
@@ -186,10 +198,18 @@ def get_logger(
         if name in _loggers:
             existing_logger = _loggers[name]
 
-            if all(param is None for param in [
-                level, json, file, correlation_id, max_file_size,
-                backup_count, redact_fields
-            ]):
+            if all(
+                param is None
+                for param in [
+                    level,
+                    json,
+                    file,
+                    correlation_id,
+                    max_file_size,
+                    backup_count,
+                    redact_fields,
+                ]
+            ):
                 return existing_logger
 
             warnings.warn(
@@ -199,7 +219,7 @@ def get_logger(
                 UserWarning,
                 stacklevel=2,
             )
-        
+
         config = create_config(
             name=name,
             level=level,
@@ -210,8 +230,8 @@ def get_logger(
             backup_count=backup_count,
             redact_fields=redact_fields,
         )
-        
+
         logger = LogCoreLogger(config)
         _loggers[name] = logger
-        
+
         return logger
