@@ -5,15 +5,21 @@ All notable changes to LogCore are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.6] - 2026-05-27
+
+### Added
+- **Log sampling.** New `Sampler` class combining rate-based, level-aware, and tail-based strategies. Tail-based mode buffers records under the current correlation_id and flushes them on the first `always_keep` record (default WARNING/ERROR/CRITICAL), so failed requests get full history while successful ones cost nothing. Buffer is bounded per correlation_id to prevent unbounded memory growth.
+- `Sampler` exported from top-level `logcore` package.
+- `get_logger(..., sampler=...)` and `get_logger(..., sample_rate=...)` shortcuts.
+- `LogCoreLogger.flush_sample_buffer(cid)` for users who set correlation_id directly without the context manager.
+- Environment variables: `LOGCORE_SAMPLE_RATE`, `LOGCORE_SAMPLE_TAIL`, `LOGCORE_SAMPLE_BUFFER_SIZE`, `LOGCORE_SAMPLE_ALWAYS_KEEP`.
+- GitHub issue templates (`bug_report.md`, `feature_request.md`) and a pull request template under `.github/`.
+- `.flake8` config so local `flake8 logcore tests` matches CI (`max-line-length=88`).
 
 ### Changed
 - Minimum supported Python version raised from 3.8 to 3.9. CI stopped running the 3.8 matrix entry; the classifier and `requires-python` now reflect that.
+- `LogCoreLogger.with_correlation_id()` now discards any tail-buffered records on clean exit.
 - Removed the `Documentation` project URL that pointed back to the README; it will return once a dedicated docs site is published.
-
-### Added
-- `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
-- GitHub issue templates (`bug_report.md`, `feature_request.md`) and a pull request template under `.github/`.
 
 ## [0.1.5] - 2026-05-20
 
@@ -27,6 +33,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `skip_fields` de-duplicated into a single module-level `_STDLIB_LOG_FIELDS` frozenset shared by both `JSONFormatter` and `TextFormatter`. Adding a field to suppress now only requires one change.
 - `get_logger` emits a `UserWarning` when called with configuration arguments for a name that already has a cached logger. Previously the replacement was silent, making it easy to create dangling references.
 
+[0.1.6]: https://github.com/SarkarRana/logcore/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/SarkarRana/logcore/compare/v0.1.4...v0.1.5
 
 ## [0.1.4] - 2025-01-15

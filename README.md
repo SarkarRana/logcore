@@ -84,13 +84,20 @@ Calling `get_logger` with the same name a second time and no extra arguments ret
 ### Public API
 
 ```python
-from logcore import get_logger, LogLevel, set_correlation_id, get_correlation_id
+from logcore import (
+    get_logger,
+    LogLevel,
+    Sampler,
+    set_correlation_id,
+    get_correlation_id,
+)
 ```
 
 | Symbol | Description |
 |---|---|
 | `get_logger(name, ...)` | Create or retrieve a logger |
 | `LogLevel` | Enum of valid log levels (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
+| `Sampler(rate, always_keep, tail_based, ...)` | Configurable sampler combining rate-based, level-aware, and tail-based sampling |
 | `set_correlation_id(id)` | Set a correlation ID on the current context (thread/task) without a logger instance |
 | `get_correlation_id()` | Read the current correlation ID, or `None` if unset |
 
@@ -189,6 +196,60 @@ log.info("User data", username="alice", password="secret123", token="abc123", ro
 Values of 4 characters or fewer are fully redacted (`[REDACTED]`). Longer values reveal a short prefix so you can correlate log lines without exposing the secret.
 
 Default redacted fields: `password`, `passwd`, `secret`, `token`, `key`, `api_key`, `access_token`, `auth`, `authorization`, `credential`, `private_key`, `cert`, `certificate`.
+
+#### Log Sampling
+
+For high-throughput services, emitting every record is wasteful. LogCore ships with a built-in `Sampler` that combines three strategies:
+
+```python
+from logcore import get_logger, Sampler
+
+log = get_logger(
+    "api",
+    sampler=Sampler(
+        rate=0.01,                                    # 1% of INFO/DEBUG
+        always_keep={"WARNING", "ERROR", "CRITICAL"}, # never sampled
+        tail_based=True,                              # buffer per request
+        tail_buffer_size=100,                         # max records per cid
+    ),
+)
+```
+
+Or use the shortcut for simple rate-based sampling:
+
+```python
+log = get_logger("api", sample_rate=0.01)
+```
+
+**Tail-based sampling** is the differentiator: when a correlation_id is active, INFO/DEBUG records are buffered instead of emitted. On the first WARNING/ERROR/CRITICAL in that request, the buffer is flushed to handlers — so you get the full history of any request that fails, but pay nothing for successful requests:
+
+```python
+with log.with_correlation_id("req-abc"):
+    log.info("received request")     # buffered
+    log.info("validated input")      # buffered
+    log.error("database timeout")    # flushes both INFOs + emits the error
+    log.info("retrying")             # passes through (cid is now "interesting")
+# On clean exit, any unflushed records are discarded.
+```
+
+If you set the correlation_id directly (e.g. in middleware) instead of using the context manager, call `log.flush_sample_buffer()` at request end so the buffer is cleared.
+
+**Environment variables:**
+
+```bash
+LOGCORE_SAMPLE_RATE=0.01
+LOGCORE_SAMPLE_TAIL=true
+LOGCORE_SAMPLE_BUFFER_SIZE=100
+LOGCORE_SAMPLE_ALWAYS_KEEP=WARNING,ERROR,CRITICAL
+```
+
+**Stats** for observability:
+
+```python
+log.sampler.stats()
+# SamplerStats(active_buffers=3, buffered_records=42, dropped_overflow=0,
+#              kept=120, dropped=9500, buffered=380, flushed=80)
+```
 
 #### OpenTelemetry Integration
 
@@ -423,10 +484,10 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 - [x] **Accurate caller info**: `filename`, `lineno`, and `funcName` now reflect the real call site (v0.1.5)
 - [x] **Reconfiguration warning**: `get_logger` emits `UserWarning` when replacing a cached logger (v0.1.5)
 - [x] **`LogLevel`, `set_correlation_id`, `get_correlation_id`** promoted to top-level public API (v0.1.5)
+- [x] **Log sampling**: Rate-based, level-aware, and tail-based sampling with per-correlation-id buffering (v0.1.6)
 
 ### Planned
 - [ ] **Sentry integration**: Automatic error forwarding with structured context
-- [ ] **Log sampling**: Rate-based sampling to protect downstream systems under load
 - [ ] **Async batching**: Buffer and flush writes for lower-latency hot paths
 - [ ] **OTLP export**: Direct log shipping to OpenTelemetry collectors
 - [ ] **Kubernetes metadata**: Pod/node/namespace injection via downward API env vars

@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional, Set
 
+from .sampling import Sampler, sampler_from_env
+
 
 class LogLevel(Enum):
     DEBUG = "DEBUG"
@@ -31,6 +33,7 @@ class LogCoreConfig:
     max_file_size: int = 10 * 1024 * 1024
     backup_count: int = 5
     redact_fields: Optional[Set[str]] = None
+    sampler: Optional[Sampler] = None
 
     def __post_init__(self) -> None:
         if self.redact_fields is None:
@@ -86,6 +89,10 @@ def get_config_from_env() -> Dict[str, Any]:
             field.strip() for field in redact_fields.split(",")
         )
 
+    env_sampler = sampler_from_env()
+    if env_sampler is not None:
+        config["sampler"] = env_sampler
+
     return config
 
 
@@ -98,8 +105,13 @@ def create_config(
     max_file_size: Optional[int] = None,
     backup_count: Optional[int] = None,
     redact_fields: Optional[Set[str]] = None,
+    sampler: Optional[Sampler] = None,
+    sample_rate: Optional[float] = None,
 ) -> LogCoreConfig:
     env_config = get_config_from_env()
+
+    if sampler is None and sample_rate is not None:
+        sampler = Sampler(rate=sample_rate)
 
     config_dict = {
         "name": name,
@@ -130,6 +142,7 @@ def create_config(
             if redact_fields is not None
             else env_config.get("redact_fields")
         ),
+        "sampler": sampler if sampler is not None else env_config.get("sampler"),
     }
 
     return LogCoreConfig(**config_dict)  # type: ignore[arg-type]

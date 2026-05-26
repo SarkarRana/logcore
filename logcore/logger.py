@@ -5,9 +5,9 @@ import os
 import sys
 import threading
 import warnings
-from contextlib import AbstractContextManager
+from contextlib import contextmanager
 from types import FrameType
-from typing import Any, Dict, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, Optional, Set, Tuple, Union
 
 try:
     from opentelemetry import trace as _otel_trace
@@ -18,6 +18,7 @@ except ImportError:  # pragma: no cover
 
 from .config import LogCoreConfig, LogLevel, create_config
 from .handlers import create_handlers
+from .sampling import Decision, Sampler
 from .utils import (
     AsyncTimer,
     Timer,
@@ -51,6 +52,7 @@ _loggers: Dict[str, "LogCoreLogger"] = {}
 class LogCoreLogger:
     def __init__(self, config: LogCoreConfig):
         self.config = config
+        self.sampler: Optional[Sampler] = config.sampler
 
         self._logger = logging.getLogger(f"logcore.{config.name}")
         self._logger.setLevel(getattr(logging, config.level.value))
@@ -107,6 +109,18 @@ class LogCoreLogger:
                 else:
                     setattr(record, key, safe_str(value))
 
+        if self.sampler is not None:
+            decision = self.sampler.decide(record)
+            if decision is Decision.DROP:
+                self.sampler._record_dropped()
+                return
+            if decision is Decision.BUFFER:
+                self.sampler.buffer(record)
+                return
+            for buffered in self.sampler.flush_pending(record):
+                self._logger.handle(buffered)
+            self.sampler._record_kept()
+
         self._logger.handle(record)
 
     def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
@@ -144,15 +158,42 @@ class LogCoreLogger:
         else:
             return Timer(self, operation_name, level, **kwargs)
 
+    @contextmanager
     def with_correlation_id(
         self, correlation_id: Optional[str] = None
-    ) -> AbstractContextManager[str]:
+    ) -> Generator[str, None, None]:
         """Return a context manager that sets a correlation ID for this scope.
 
         Uses contextvars, so the ID is isolated per async task or thread.
         A UUID is generated automatically when correlation_id is omitted.
+
+        When a tail-based sampler is attached, any buffered records for this
+        correlation_id are discarded on clean exit (the request didn't error,
+        so we drop the captured history).
         """
-        return correlation_id_context(correlation_id)
+        with correlation_id_context(correlation_id) as cid:
+            try:
+                yield cid
+            finally:
+                if self.sampler is not None and self.sampler.tail_based:
+                    self.sampler.discard_buffer(cid)
+
+    def flush_sample_buffer(self, correlation_id: Optional[str] = None) -> int:
+        """Discard any tail-buffered records for ``correlation_id``.
+
+        Call this at request end when you set the correlation_id directly
+        (e.g. via middleware) instead of using ``with_correlation_id``. When
+        ``correlation_id`` is omitted, the current contextvar value is used.
+
+        Returns the number of records discarded; 0 if no sampler is attached,
+        sampling is not tail-based, or no buffer exists for the given cid.
+        """
+        if self.sampler is None or not self.sampler.tail_based:
+            return 0
+        cid = correlation_id if correlation_id is not None else get_correlation_id()
+        if cid is None:
+            return 0
+        return self.sampler.discard_buffer(cid)
 
     def set_level(self, level: Union[str, LogLevel]) -> None:
         if isinstance(level, str):
@@ -185,6 +226,8 @@ def get_logger(
     max_file_size: Optional[int] = None,
     backup_count: Optional[int] = None,
     redact_fields: Optional[Set[str]] = None,
+    sampler: Optional[Sampler] = None,
+    sample_rate: Optional[float] = None,
 ) -> "LogCoreLogger":
     """Return a LogCoreLogger for the given name, creating it if needed.
 
@@ -193,7 +236,13 @@ def get_logger(
     argument forces a new logger to be created and cached, replacing the old one.
     Environment variables (LOGCORE_*) are applied as defaults when a parameter
     is omitted.
+
+    Pass ``sampler`` for full control, or ``sample_rate`` as a shortcut for
+    ``Sampler(rate=sample_rate)``. Passing both raises ``ValueError``.
     """
+    if sampler is not None and sample_rate is not None:
+        raise ValueError("Pass either `sampler` or `sample_rate`, not both.")
+
     with _logger_lock:
         if name in _loggers:
             existing_logger = _loggers[name]
@@ -208,6 +257,8 @@ def get_logger(
                     max_file_size,
                     backup_count,
                     redact_fields,
+                    sampler,
+                    sample_rate,
                 ]
             ):
                 return existing_logger
@@ -229,6 +280,8 @@ def get_logger(
             max_file_size=max_file_size,
             backup_count=backup_count,
             redact_fields=redact_fields,
+            sampler=sampler,
+            sample_rate=sample_rate,
         )
 
         logger = LogCoreLogger(config)
