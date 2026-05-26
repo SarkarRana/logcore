@@ -5,6 +5,16 @@ All notable changes to LogCore are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Minimum supported Python version raised from 3.8 to 3.9. CI stopped running the 3.8 matrix entry; the classifier and `requires-python` now reflect that.
+- Removed the `Documentation` project URL that pointed back to the README; it will return once a dedicated docs site is published.
+
+### Added
+- `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
+- GitHub issue templates (`bug_report.md`, `feature_request.md`) and a pull request template under `.github/`.
+
 ## [0.1.5] - 2026-05-20
 
 ### Fixed
