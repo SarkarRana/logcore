@@ -81,10 +81,9 @@ class Sampler:
     The full evaluation order inside :meth:`decide`:
 
     1. If ``record.levelname`` is in ``always_keep`` → ``KEEP``.
-    2. If ``tail_based`` is on AND a correlation_id is set:
-       - If the cid has already been flushed (an earlier error in this request
-         drained the buffer) → ``KEEP`` (pass-through mode).
-       - Otherwise → ``BUFFER``.
+    2. If ``tail_based`` is on AND a correlation_id is set: when the cid has
+       already been flushed (an earlier error in this request drained the
+       buffer) → ``KEEP`` (pass-through mode); otherwise → ``BUFFER``.
     3. Otherwise, a random draw against ``rate`` → ``KEEP`` or ``DROP``.
 
     The companion method :meth:`flush_pending` returns any buffered records

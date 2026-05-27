@@ -49,10 +49,12 @@ docs = [
     "sphinx>=6.0.0",
     "sphinx-rtd-theme>=1.2.0",
     "sphinx-autodoc-typehints>=1.19.0",
+    "myst-parser>=2.0.0",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/SarkarRana/logcore"
+"Documentation" = "https://sarkarrana.github.io/logcore/"
 "Bug Reports" = "https://github.com/SarkarRana/logcore/issues"
 "Source" = "https://github.com/SarkarRana/logcore"
 

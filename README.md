@@ -4,8 +4,11 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/logcore.svg)](https://pypi.org/project/logcore/)
 [![CI](https://github.com/SarkarRana/logcore/actions/workflows/ci.yml/badge.svg)](https://github.com/SarkarRana/logcore/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/SarkarRana/logcore/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-sarkarrana.github.io/logcore-blue.svg)](https://sarkarrana.github.io/logcore/)
 
 **A production-ready logging library for Python**
+
+📖 **Full documentation:** [sarkarrana.github.io/logcore](https://sarkarrana.github.io/logcore/)
 
 LogCore provides a simple, structured, and extensible logging solution that works seamlessly for both small scripts and large microservices. It's designed as a drop-in alternative to Python's built-in logging with a focus on developer experience, observability, and production readiness.
 
