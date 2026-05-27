@@ -84,7 +84,7 @@ intersphinx_mapping = {
 # -- HTML output ----------------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+html_static_path: list[str] = []  # add "_static" once you have custom CSS/JS
 html_title = f"LogCore {release}"
 html_show_sourcelink = False
 html_theme_options = {
